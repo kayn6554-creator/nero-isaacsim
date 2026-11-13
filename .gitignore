@@ -1,0 +1,15 @@
+# 环境与缓存
+.venv/
+build-constraints.txt
+install.log
+__pycache__/
+*.pyc
+# 从 gcf 复制来的项目（有自己的 git 历史，不放进本仓库）
+isaac_so_arm101/
+# 原始资产（来源方提供，体积较大，不入库；放置方法见 assets/README.md）
+assets/Fire equipment/
+*.zip
+# 运行产物
+logs/
+outputs/
+videos/

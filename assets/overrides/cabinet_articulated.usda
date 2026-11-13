@@ -1,0 +1,113 @@
+#usda 1.0
+(
+    defaultPrim = "cabinet"
+    metersPerUnit = 1
+    upAxis = "Z"
+    doc = "Override layer for cabinet.usdc: makes the fire cabinet an IsaacLab articulation. Original file is not modified. Path is relative to this file (assets/overrides/)."
+)
+
+def Xform "cabinet" (
+    prepend references = @../Fire equipment/cabinet/cabinet.usdc@</root>
+)
+{
+    # 资产里自带的 50m x 50m 地面，场景里已经有地面了，停用
+    over "GroundPlane" (
+        active = false
+    )
+    {
+    }
+
+    # 箱体：作为关节体的根连杆。原来是 kinematic，关节体里不允许，改成普通刚体，
+    # 由 IsaacLab 的 fix_root_link 用固定关节钉在世界上
+    over "_2" (
+        prepend apiSchemas = ["PhysicsArticulationRootAPI", "PhysxArticulationAPI", "PhysicsMassAPI"]
+    )
+    {
+        bool physics:kinematicEnabled = 0
+        float physics:mass = 5.0
+        bool physxArticulation:enabledSelfCollisions = 0
+    }
+
+    # 前门（底边铰链，往外翻下）
+    over "_1" (
+        prepend apiSchemas = ["PhysicsMassAPI"]
+    )
+    {
+        float physics:mass = 0.2
+        over "_1"
+        {
+            # 原关节名字和顶盖的重名，且 body 指向的是 mesh，停用后在下面重新定义
+            over "RevoluteJoint" (
+                active = false
+            )
+            {
+            }
+        }
+    }
+
+    # 顶盖（后沿铰链，往上掀）
+    over "_3" (
+        prepend apiSchemas = ["PhysicsMassAPI", "PhysicsFilteredPairsAPI"]
+    )
+    {
+        float physics:mass = 0.3
+        # 顶盖的凸包碰撞体和前门上沿重叠约 8 mm，两者不是直接相连的连杆，
+        # 自碰撞没关掉时会互相卡死，这里显式过滤这一对
+        rel physics:filteredPairs = </cabinet/_1>
+        over "_3"
+        {
+            over "RevoluteJoint" (
+                active = false
+            )
+            {
+            }
+        }
+    }
+
+    def Scope "joints"
+    {
+        def PhysicsRevoluteJoint "front_door_joint" (
+            prepend apiSchemas = ["PhysicsDriveAPI:angular"]
+        )
+        {
+            # 关节驱动：没有 DriveAPI 时 PhysX 不会给这个关节建驱动，IsaacLab 设的刚度/阻尼不起作用
+            # 这里的数值会被 IsaacLab 的 actuator 配置覆盖
+            uniform token drive:angular:physics:type = "force"
+            float drive:angular:physics:stiffness = 0
+            float drive:angular:physics:damping = 0
+            float drive:angular:physics:maxForce = 100
+            float drive:angular:physics:targetPosition = 0
+            uniform token physics:axis = "X"
+            rel physics:body0 = </cabinet/_2>
+            rel physics:body1 = </cabinet/_1>
+            point3f physics:localPos0 = (0, -0.09600294, 0.29206908)
+            point3f physics:localPos1 = (0, -0.09600294, 0.29206908)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+            float physics:lowerLimit = 0
+            float physics:upperLimit = 175
+        }
+
+        def PhysicsRevoluteJoint "top_lid_joint" (
+            prepend apiSchemas = ["PhysicsDriveAPI:angular"]
+        )
+        {
+            # 关节驱动：没有 DriveAPI 时 PhysX 不会给这个关节建驱动，IsaacLab 设的刚度/阻尼不起作用
+            # 这里的数值会被 IsaacLab 的 actuator 配置覆盖
+            uniform token drive:angular:physics:type = "force"
+            float drive:angular:physics:stiffness = 0
+            float drive:angular:physics:damping = 0
+            float drive:angular:physics:maxForce = 100
+            float drive:angular:physics:targetPosition = 0
+            uniform token physics:axis = "X"
+            rel physics:body0 = </cabinet/_2>
+            rel physics:body1 = </cabinet/_3>
+            point3f physics:localPos0 = (0, 0.09140533, 0.5129813)
+            point3f physics:localPos1 = (0, 0.09140533, 0.5129813)
+            quatf physics:localRot0 = (1, 0, 0, 0)
+            quatf physics:localRot1 = (1, 0, 0, 0)
+            float physics:lowerLimit = -175
+            float physics:upperLimit = 0
+        }
+    }
+}

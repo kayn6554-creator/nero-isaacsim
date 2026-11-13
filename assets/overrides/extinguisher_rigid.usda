@@ -1,0 +1,19 @@
+#usda 1.0
+(
+    defaultPrim = "extinguisher"
+    metersPerUnit = 1
+    upAxis = "Z"
+    doc = "Override layer for extinguisher.usdc: adds mass. Original file is not modified."
+)
+
+def Xform "extinguisher" (
+    prepend references = @../Fire equipment/extinguisher/extinguisher.usdc@</root>
+)
+{
+    over "extinguisher" (
+        prepend apiSchemas = ["PhysicsMassAPI"]
+    )
+    {
+        float physics:mass = 1.0
+    }
+}
