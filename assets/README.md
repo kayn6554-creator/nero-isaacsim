@@ -36,4 +36,4 @@ Fire equipment/
 - `cabinet_articulated.usda`：把消防箱改成 IsaacLab 能控制的关节体，具体改了哪些见 KANBAN 第 9 步；
 - `extinguisher_rigid.usda`：给灭火器加 1 kg 的质量。
 
-这两个文件只给 IsaacLab 脚本（`scripts/fire_cabinet_test.py`）用。在 Isaac Sim 界面里做鼠标交互演示，直接打开原始的 `fire equipment.usd` 就行。
+这两个文件供 IsaacLab 脚本使用：`scripts/fire_cabinet_test.py` 用于关节/驱动诊断，`scripts/fire_lid_passive_test.py` 用于顶盖被动基线验证。在 Isaac Sim 界面里做鼠标交互演示，直接打开原始的 `fire equipment.usd` 就行。
