@@ -2,9 +2,37 @@
 
 在实验室工作站 102（192.168.1.102，RTX 4090）上，用 **Isaac Sim 5.1.0 + IsaacLab 2.3.0** 搭建 NERO 机械臂的仿真环境，并接入消防箱数字资产。
 
-当前进度：环境和 NERO 推流运行已通过；消防箱资产与关节体已接入；2026-11-13 完成顶盖被动物理基线验证（四项验收全部通过）。2026-11-20 新增同一 Isaac Sim 进程内的 NERO TCP 实时控制服务，支持第二个 SSH 终端发送前伸、回撤、摆动等命令；新控制服务及其 WebRTC 鼠标拖盖能力尚待工作站实测。NERO 主动接触开盖和 VLA 推理接入仍是后续工作。
+当前进度：环境和 NERO 推流运行已通过；消防箱资产与关节体已接入；2026-11-13 完成顶盖被动物理基线验证（四项验收全部通过）。2026-11-20 已在工作站验证同一 Isaac Sim 进程内的 NERO TCP 实时控制服务：第二个 SSH 终端可控制机械臂前伸、回撤和摆动；服务默认使用 CPU PhysX 后，WebRTC 中 Shift + 左键可正常拖动消防箱顶盖。NERO 主动接触开盖和 VLA 推理接入仍是后续工作。
 
 **新人请直接看 [KANBAN.md](KANBAN.md)**，里面按顺序列出了每一步要敲的命令、要做的操作，以及正常情况下应该看到什么。
+
+## 最小化运行验证（环境已安装）
+
+在 Windows PowerShell 打开两个终端，分别 SSH 登录工作站：
+
+```powershell
+ssh <工作站账号>@192.168.1.102
+```
+
+**终端 A：启动场景、WebRTC 和控制服务**（默认 CPU PhysX，支持鼠标拖盖）：
+
+```bash
+cd /data/panhe/isaac_nero && bash scripts/run_fire_scene_control_server.sh
+```
+
+等待 `[SCENE] NERO + fire cabinet scene ready.` 和 `[CONTROL] Listening on 127.0.0.1:8765`。
+
+**WebRTC 客户端：** Server 填 `192.168.1.102`，Streaming port `49100`，HTTP port `47998`，点击 Connect。
+
+**终端 B：控制 NERO 完成前伸、回撤和摆动**：
+
+```bash
+cd /data/panhe/isaac_nero && .venv/bin/python scripts/nero_motion_client.py demo
+```
+
+在 WebRTC 画面中，按住 Shift + 鼠标左键拖动消防箱顶盖，可验证物理交互。终端 A 保持运行；终端 B 的客户端命令结束后，服务仍可继续接受命令。
+
+完整登录、启动、控制、手动拖盖和关闭步骤见 [NERO 实时控制与消防箱手动交互](docs/nero_live_control.md)。
 
 ## 目录
 
