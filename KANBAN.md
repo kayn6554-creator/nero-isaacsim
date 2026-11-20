@@ -15,8 +15,8 @@
 | 8 | 在界面里拖入消防箱查看 | ✅ 资产可加载、贴图正常、尺度正确 |
 | 9 | IsaacLab 关节体结构与驱动诊断（历史脚本驱动测试） | 🗂️ 历史记录；仅供资产诊断，不用于正式实验 |
 | 10 | 消防箱顶盖被动物理基线 | ✅ 通过（2026-11-13；四项验收全部达成） |
-| 11 | NERO + 消防箱同场景关节运动 Demo | 🟡 脚本已入库，待工作站实测 |
-| 12 | 鼠标交互 + 录制演示视频 | 🟡 待验证 |
+| 11 | NERO + 消防箱同场景实时控制服务 | ✅ 工作站实测通过（2026-11-20）|
+| 12 | CPU PhysX 鼠标拖盖交互 | ✅ 工作站实测通过（2026-11-20）；录制视频待完成 |
 | — | 机械臂开门、VLA 推理链路接入 | ⬜ 未开始 |
 
 > 约定：下面每一步都分成 **做什么 → 命令/操作 → 正常现象 → 不正常怎么办**。命令块里的 `#` 开头是注释，不用敲。
@@ -294,68 +294,139 @@ WebRTC Server 使用 \`192.168.1.102\`。完整日志保存在 \`/tmp/panhe_fire
 
 ---
 
-## 第 11 步　NERO 关节运动演示（消防箱同场景）　🟡 已入库，待工作站实测（2026-11-19）
+## 第 11 步　NERO + 消防箱同场景实时控制（CPU PhysX）　✅ 已完成（2026-11-20）
 
-**做什么**：在已经验证的 NERO + 消防箱 + 两个灭火器场景中，使用独立 Python 脚本让 NERO 执行连续关节运动。该步骤用于演示 IsaacLab 中的机器人关节控制，不是主动开盖实验。
+**做什么**：启动一个持续运行的 Isaac Sim 进程，同时加载 NERO、消防箱和两个灭火器。第二个 SSH 终端通过 TCP 客户端发送机械臂动作命令；WebRTC 负责显示画面和手动拖动顶盖。
 
-**命令**：
+**最小化验证原则：** 环境和资产已经安装完成后，不再执行额外 smoke test、重复资产探测或第二套 Isaac Sim 启动流程。日常只需要两个 SSH 终端、两条命令。
 
-~~~bash
-cd /data/$USER/isaac_nero
-source scripts/env.sh
-bash scripts/run_fire_scene_nero_motion_demo.sh
-~~~
+### 11.1 Windows 端登录工作站
 
-**WebRTC 连接**：Server 填 192.168.1.102，Streaming port 使用 49100，HTTP port 使用 47998。等待工作站开始推流后再连接。
+在 Windows PowerShell 打开终端 A：
 
-**默认动作**：
-- 依次控制 NERO 的 joint1、joint2、joint3；
-- 每个关节分别向正、负方向运动，再返回 home；
-- 最大请求偏移为 0.18 rad，脚本会根据运行时关节限位进一步裁剪；
-- 目标通过插值逐步发送，不会瞬间跳变。
+```powershell
+ssh <你的工作站账号>@192.168.1.102
+```
 
-**控制边界**：
-- 只调用 robot.set_joint_position_target(...) 控制 NERO；
-- 消防箱顶盖 stiffness=0，仅保留阻尼；前门保持被动基线中的弱弹簧；
-- 不调用 cabinet.set_joint_position_target(...)，不通过脚本角度打开消防箱；
-- 本步骤不能作为 NERO 已经接触并打开顶盖的证据。
+登录成功后，进入终端 A 的仓库目录并启动仿真：
 
-**可选保守测试**：
+```bash
+cd /data/panhe/isaac_nero && bash scripts/run_fire_scene_control_server.sh
+```
 
-~~~bash
-bash scripts/run_fire_scene_nero_motion_demo.sh --joints joint1 --amplitude 0.10
-~~~
+> 其他账号部署时，将路径替换为该账号实际仓库目录，例如 `/data/$USER/isaac_nero`。启动脚本会自动加载 `scripts/env.sh`，无需手动激活 Conda 或 venv。
 
-**验收状态**：代码和启动入口已提交，但截至 2026-11-19 尚未在工作站 102 上实测。明天首次运行时，确认无 traceback、WebRTC 能看到三个场景对象、NERO 能完成关节运动并返回 home、消防箱保持稳定后，再将状态更新为“已验证”。
+### 11.2 确认仿真服务就绪
 
-详细说明见 [docs/nero_joint_motion_demo.md](docs/nero_joint_motion_demo.md)。
+终端 A 保持运行，等待以下日志：
+
+```text
+[INFO] Simulation/PhysX device: cpu
+[SCENE] NERO + fire cabinet scene ready.
+[CONTROL] Listening on 127.0.0.1:8765
+[WEBRTC] Connect to 192.168.1.102.
+```
+
+这里的 CPU 指 PhysX/仿真计算设备；RTX GPU 仍用于渲染和 WebRTC 推流。当前启动入口默认 CPU PhysX，这是为了兼容本场景的 Shift + 左键鼠标拖动物理交互。
+
+**不要**在终端 B 再启动 Isaac Sim，也不要运行旧版 `run_fire_scene_nero_motion_demo.sh` 或 `fire_lid_passive_test.py`。
+
+### 11.3 连接 WebRTC 画面
+
+打开 Windows 上的 Isaac Sim WebRTC Streaming Client：
+
+| 字段 | 值 |
+|---|---|
+| Server | `192.168.1.102` |
+| Streaming port | `49100` |
+| HTTP port | `47998` |
+
+点击 Connect。应看到 NERO、消防箱和两个灭火器。
+
+### 11.4 第二个 SSH 终端运行最小动作验证
+
+在 Windows PowerShell 再开一个终端 B，重新登录同一工作站：
+
+```powershell
+ssh <你的工作站账号>@192.168.1.102
+```
+
+运行唯一一条动作验证命令：
+
+```bash
+cd /data/panhe/isaac_nero && .venv/bin/python scripts/nero_motion_client.py demo
+```
+
+**正常现象**：WebRTC 中 NERO 依次完成前伸、回撤、左右摆动并回到初始姿态。终端 B 的客户端收到服务端确认后退出；终端 A 的 Isaac Sim 和 TCP 服务继续运行。
+
+### 11.5 其他控制命令
+
+在终端 B 的仓库目录执行：
+
+```bash
+.venv/bin/python scripts/nero_motion_client.py forward
+.venv/bin/python scripts/nero_motion_client.py back
+.venv/bin/python scripts/nero_motion_client.py sway
+.venv/bin/python scripts/nero_motion_client.py home
+.venv/bin/python scripts/nero_motion_client.py status
+.venv/bin/python scripts/nero_motion_client.py stop
+```
+
+| 命令 | 行为 |
+|---|---|
+| `demo` | 前伸、回撤、左右摆动，最后回 home |
+| `forward` / `reach` | 进入肩/肘组合前伸姿态 |
+| `back` / `retract` | 回到初始姿态 |
+| `sway` / `wave` | joint1 左右摆动后回 home |
+| `home` | 回到初始姿态 |
+| `status` | 查看运动状态和当前关节位置 |
+| `stop` | 中止当前轨迹并保持当前姿态 |
+| `quit` | 关闭仿真服务 |
+
+完整说明见 [docs/nero_live_control.md](docs/nero_live_control.md)。
 
 ---
 
-## 第 12 步　鼠标交互 + 录制演示视频　🟡 待验证
+## 第 12 步　CPU PhysX 下手动拖动消防箱顶盖　✅ 已完成（2026-11-20）
 
-**做什么**：录一段视频，展示消防箱资产可以交互：门能拉开，灭火器能拿出来。这一步不经过 IsaacLab，直接用 Isaac Sim 自带的物理鼠标拖拽功能。原始资产本身就带物理设置：箱体是 kinematic 固定的，门是刚体加铰链，灭火器是刚体，所以可以直接拿来演示。
-
-**命令**：
-```bash
-cd /data/$USER/isaac_nero && source scripts/env.sh
-pkill -u $USER -f fire_cabinet_test.py; pkill -u $USER -f zero_agent   # 先停掉其它仿真
-bash scripts/stream_isaacsim.sh
-```
+**做什么**：在第 11 步启动的同一个仿真进程中，使用 WebRTC 的 PhysX 鼠标交互拖动消防箱顶盖。不要额外启动完整 GUI 仿真或其他测试脚本。
 
 **操作**：
-1. 等终端里出现 `app ready`，然后用 WebRTC 客户端连接；
-2. 菜单 **File → Open**，打开 `/data/<你的账号>/isaac_nero/assets/Fire equipment/fire equipment.usd`；
-3. 在 Windows 上按 **Win + Alt + R** 开始录屏（或者用 OBS 录 WebRTC 客户端的窗口）；
-4. 点左侧工具栏的 **▶ Play**，开始物理仿真；
-5. 按住 **Shift**，用鼠标左键拖动顶盖、前门、灭火器；
-6. 演示完点 **■ Stop**（场景会复位），然后停止录屏。
 
-**期望现象**：Play 之后，物体在 Shift + 拖动下会跟着鼠标走：顶盖绕后沿往上掀，前门绕底边往外翻，灭火器可以从箱子里拖出来。
+1. 确认第 11 步终端 A 的服务仍在运行，启动日志显示 `Simulation/PhysX device: cpu`。
+2. 等 NERO 当前动作结束；如果还在运动，在终端 B 执行：
 
-**待确认**：
-- `isaacsim.exp.full.streaming` 这个启动方式在 102 上还没跑过；
-- 如果拖不动，或者拖起来太轻、乱飞，可以在 **Edit → Preferences → Physics** 里调整鼠标交互的力度。
+   ```bash
+   .venv/bin/python scripts/nero_motion_client.py stop
+   ```
+
+3. 在 WebRTC 画面中，将鼠标移到顶盖边缘。
+4. 按住 **Shift + 鼠标左键**，拖动顶盖。
+5. 观察顶盖绕铰链转动；松开鼠标后由重力和被动阻尼继续作用。
+
+**为什么使用 CPU PhysX：** GPU Direct API 模式下，鼠标交互调用 PhysX `addTorque()` 曾触发：
+
+```text
+PxArticulationLink::addTorque():
+it is illegal to call this method if
+PxSceneFlag::eENABLE_DIRECT_GPU_API is enabled!
+```
+
+将仿真设备设为 CPU 后，当前工作站的鼠标拖盖操作已通过实测。服务端在 `AppLauncher.add_app_launcher_args(parser)` 后设置默认 `device=cpu`，因此无需额外参数，直接执行：
+
+```bash
+bash scripts/run_fire_scene_control_server.sh
+```
+
+**验收边界**：
+
+- ✅ CPU PhysX 模式下鼠标可以拖动消防箱顶盖；
+- ✅ 重力与碰撞保持启用；
+- ✅ 顶盖 stiffness=0，脚本没有调用 `cabinet.set_joint_position_target()`；
+- ✅ 机械臂的关节运动命令与手动拖盖在同一仿真进程中工作；
+- ⬜ 演示视频录制尚未归档。
+
+**注意：** NERO 关节运动 Demo 和人工鼠标拖盖只验证场景、关节控制和物理交互链路，不代表 NERO 已经通过末端接触自主打开消防箱。自主开盖仍需独立实验。
 
 ---
 
