@@ -20,6 +20,9 @@ parser.add_argument("--door-stiffness", type=float, default=2.0)
 parser.add_argument("--lid-damping", type=float, default=0.3)
 parser.add_argument("--no-extinguisher", action="store_true")
 AppLauncher.add_app_launcher_args(parser)
+# CPU PhysX is the validated mode for Shift+left mouse dragging in this scene.
+# RTX rendering/WebRTC remains available; only the simulation device is CPU.
+parser.set_defaults(device="cpu")
 args = parser.parse_args()
 if not 1 <= args.control_port <= 65535 or args.move_time <= 0 or args.hold_time < 0:
     parser.error("Invalid control port or motion timing.")
@@ -147,6 +150,7 @@ def build_segments(command, robot, home):
 def main():
     validate_assets()
     sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=0.01, device=args.device))
+    print(f"[INFO] Simulation/PhysX device: {args.device}", flush=True)
     sim.set_camera_view([1.2, -0.9, 0.9], [-0.1, 0.0, 0.30])
     cfg = FireSceneCfg(num_envs=1, env_spacing=2.0)
     if args.no_extinguisher:
