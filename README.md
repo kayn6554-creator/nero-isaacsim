@@ -36,7 +36,8 @@ nero-isaacsim/
     ├── troubleshooting.md          踩过的坑和解决办法
     ├── camera_params.md            真机两个 D405 相机的内参/外参
     ├── fire_lid_passive_baseline.md 消防箱顶盖被动基线实验记录
-    └── nero_joint_motion_demo.md NERO 关节运动 Demo 操作说明
+    ├── nero_joint_motion_demo.md NERO 旧版单次关节运动 Demo 说明
+    └── nero_live_control.md              NERO 实时控制与消防箱手动交互说明
 ```
 
 ## 依赖的外部内容（不在本仓库里）
