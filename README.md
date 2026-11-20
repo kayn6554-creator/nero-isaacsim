@@ -22,8 +22,11 @@ nero-isaacsim/
 │   ├── fire_cabinet_test.py         消防箱关节驱动诊断脚本
 │   ├── run_fire_lid_passive_test.sh 推流运行顶盖被动基线测试
 │   ├── fire_lid_passive_test.py     顶盖被动基线测试脚本
-│   ├── fire_scene_nero_motion_demo.py NERO + 消防箱同场景关节运动演示
-│   └── run_fire_scene_nero_motion_demo.sh WebRTC 启动入口
+│   ├── fire_scene_nero_motion_demo.py NERO + 消防箱单次关节运动演示（旧版）
+│   ├── run_fire_scene_nero_motion_demo.sh 旧版 WebRTC 启动入口
+│   ├── fire_scene_control_server.py      持续运行的 Isaac Sim + TCP 控制服务
+│   ├── nero_motion_client.py             第二终端运动命令客户端
+│   └── run_fire_scene_control_server.sh  实时控制场景启动入口
 ├── assets/
 │   ├── README.md              原始资产怎么放
 │   └── overrides/             给原始资产加物理设置的覆盖层（不改原文件）
